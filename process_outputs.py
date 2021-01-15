@@ -1,6 +1,5 @@
 # Title:        Process outputs each Mapper graph
 # Author:       Ewan Carr
-# Started:      2020-06-18
 
 import os
 import pickle
@@ -18,14 +17,18 @@ import xgboost as xgb
 from scipy.stats import ks_2samp, chi2_contingency
 from sklearn.preprocessing import scale
 import xlsxwriter
+import tda.helpers as th
+import tda.mapper as tm
+import tda.plotting as tp
+
 
 # Load baseline/outcome variables ---------------------------------------------
 X = pd.read_csv(os.path.join('inputs', 'X.csv'))
 gower = pd.read_csv(os.path.join('inputs', 'gower.csv'), header=None)
-hdremit = pd.read_csv(os.path.join('inputs', 'y.csv'),
-                      header=None, names=['hdremit'])
-mdpercadj = pd.read_csv(os.path.join('inputs', 'mdpercadj.csv'),
-                        header=None, names=['mdpercadj'])
+ycont = pd.read_csv(os.path.join('inputs', 'ycont.csv'),
+                    header=None, names=['ycont'])
+ybin = pd.read_csv(os.path.join('inputs', 'ybin.csv'),
+                   header=None, names=['ybin'])
 
 # Load all Mapper graphs ------------------------------------------------------
 outdir = 'outputs'
@@ -68,40 +71,24 @@ features = [f for f in features
             if (f['n'] < (0.95 * len(f['memb'])))]
 print('Number of features =', len(features))
 
-# Load k-means clusters, append to list of features ---------------------------
-kmeans = load('kmeans.joblib')
-kmeans = pd.DataFrame(kmeans).applymap(lambda x: True if x == 1 else False)
-kmeans.columns = ['K' + str(i) for i in range(5)]
-
-for k in kmeans:
-    features.append({'graph': 'KM',
-                     'feat': k,
-                     'memb': kmeans[k],
-                     'other': kmeans.loc[:, kmeans.columns != k],
-                     'n': kmeans[k].sum(),
-                     'fil': np.nan,
-                     'res': np.nan,
-                     'gain': np.nan,
-                     'cluster': np.nan})
-
 # Calculate homogeneity -------------------------------------------------------
 
 # Homogeneity for sample
-gini_samp = gini(hdremit.mean())[0]
-std_samp = mdpercadj.std()[0]
+gini_samp = gini(ybin.mean())[0]
+std_samp = ycont.std()[0]
 
 # Homogeneity for each feature
 for f in tqdm(features):
-    # hdremit
-    p = pd.concat([f['memb'], hdremit], axis=1) \
-        .groupby(f['feat'])['hdremit'] \
+    # Binary outcome (ybin)
+    p = pd.concat([f['memb'], ybin], axis=1) \
+        .groupby(f['feat'])['ybin'] \
         .mean()[1]
     gini_feat = gini(p)
     gini_pct = ((gini_samp - gini_feat) / gini_samp) * 100
-    # mdpercadj
+    # Continuous outcome (ycont)
     std_feat = pd.concat([f['memb'],
-                          mdpercadj],
-                         axis=1).groupby(f['feat'])['mdpercadj'].std()[1]
+                          ycont],
+                         axis=1).groupby(f['feat'])['ycont'].std()[1]
     std_pct = ((std_samp - std_feat) / std_samp) * 100
     # Store
     f['homog'] = {'gini': gini_feat,
@@ -134,8 +121,8 @@ def calculate_distances(f, y):
 
 def get_dist(f):
     dist = {}
-    dist['hdremit'] = calculate_distances(f, hdremit)
-    dist['mdper'] = calculate_distances(f, mdpercadj)
+    dist['ybin'] = calculate_distances(f, ybin)
+    dist['ycont'] = calculate_distances(f, ycont)
     dist['n_other'] = len(list(f['other']))
     f['dist'] = dist
     return(f)
@@ -147,8 +134,8 @@ dump(features, 'features.joblib')
 # Remove duplicate features ---------------------------------------------------
 for f, i in zip(features, range(len(features))):
     f['n_other'] = f['dist']['n_other']
-    f['max_hdremit'] = f['dist']['hdremit']['diff_max']
-    f['max_mdper'] = f['dist']['mdper']['diff_max']
+    f['max_ybin'] = f['dist']['ybin']['diff_max']
+    f['max_ycont'] = f['dist']['ycont']['diff_max']
     f['gini'] = f['homog']['gini']
     f['gini_pct'] = f['homog']['gini_pct']
     f['std'] = f['homog']['std']
@@ -157,28 +144,17 @@ for f, i in zip(features, range(len(features))):
 feature_summary = pd.DataFrame.from_dict(features)[['id',
                                                     'graph', 'feat',
                                                     'n', 'gini', 'std',
-                                                    'max_hdremit',
-                                                    'max_mdper']]
+                                                    'max_ybin',
+                                                    'max_ycont']]
 unique = feature_summary.drop_duplicates(subset=['n', 'gini', 'std'])
 unique_features = [f for f in features if f['id'] in unique['id']]
 print('features:', len(features))
 print('unique:', len(unique_features))
 
-# Calculate, for each feature, how participants are spread --------------------
-# across KMeans clusters
-for f in unique_features:
-    for i in range(5):
-        if f['graph'] != 'KM':
-            f['overlap' + str(i)] = np.sum((f['memb']) &
-                                           (kmeans['K' + str(i)])) / 421
-        else:
-            f['overlap' + str(i)] = np.nan
-
-
 # Function to create summary table listing all features -----------------------
 def tab(lof, sort=None, ascending=False):
     cols = ['id', 'graph', 'feat', 'n', 'gini', 'gini_pct',
-            'std', 'std_pct', 'max_hdremit', 'max_mdper', 'n_other',
+            'std', 'std_pct', 'max_ybin', 'max_ycont', 'n_other',
             'fil', 'res', 'gain', 'cluster']
     cols = cols + ['overlap' + str(i) for i in range(5)]
     sr = []
@@ -189,7 +165,7 @@ def tab(lof, sort=None, ascending=False):
         sr.append(row)
     results_table = pd.DataFrame(sr, columns=cols)
     to_round = ['gini', 'gini_pct', 'std',
-                'std_pct', 'max_hdremit', 'max_mdper']
+                'std_pct', 'max_ybin', 'max_ycont']
     results_table[to_round] = results_table[to_round].round(2)
     results_table.set_index(['graph', 'feat'], inplace=True)
     results_table.columns = pd.MultiIndex.from_product([['summary'],
@@ -200,42 +176,32 @@ def tab(lof, sort=None, ascending=False):
     else:
         return(results_table)
 
-
-# Choose which features to include in tables ----------------------------------
-
-# Exclude k-means features
-features = [f for f in unique_features if f['graph'] != 'KM']
-
-# Exclude supervised features
-features = [f for f in features if f['fil'] != 'mdper']
-
-
 # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 # ┃                                                                           ┃
 # ┃                           Select top N features                           ┃
 # ┃                                                                           ┃
 # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-# Outcome 1: hdremit.all (continuous) -----------------------------------------
+# Outcome 1: continuous -------------------------------------------------------
 gini = [f['homog']['gini'] for f in features]
 gini_pct = [f['homog']['gini_pct'] for f in features]
 # NOTE: gini_pct refers to the percentage *reduction* in Gini
 
 # Sort by homogeneity
-top20 = np.sort(gini_pct)[::-1][20]
-top_hd = [f for f in features if f['homog']['gini_pct'] > top20]
+top20 = np.sort(gini_pct)[::-1][np.min([len(gini_pct) - 1, 20])]
+top_ybin = [f for f in features if f['homog']['gini_pct'] >= top20]
 
-# Outcome 2: mdpercadj (binary, remission) ------------------------------------
+# Outcome 2: binary -----------------------------------------------------------
 std = [f['homog']['std'] for f in features]
 std_pct = [f['homog']['std_pct'] for f in features]
 
 # Sort by homogeneity
-top20 = np.sort(std_pct)[::-1][20]
-top_mdper = [f for f in features if f['homog']['std_pct'] > top20]
+top20 = np.sort(std_pct)[::-1][np.min([len(gini_pct) - 1, 20])]
+top_ycont = [f for f in features if f['homog']['std_pct'] >= top20]
 
 tab(features, 'gini_pct')
-tab(top_hd, 'gini_pct')
-tab(top_mdper, 'std_pct')
+tab(top_ybin, 'gini_pct')
+tab(top_ycont, 'std_pct')
 
 # Make table summarising all features -----------------------------------------
 af = tab(features, 'gini_pct')
@@ -248,7 +214,7 @@ af.to_excel('all_features.xlsx', merge_cells=False)
 diffs = []
 for f in features:
     tf = []
-    for o in ['hdremit', 'mdper']:
+    for o in ['ybin', 'ycont']:
         d = pd.DataFrame({'graph': f['graph'],
                           'feat': f['feat'],
                           **f['dist'][o]}, index=[0])
@@ -324,7 +290,6 @@ def draw_graph(i, path):
                                            inp="distance matrix")
     M['bootstrap'] = bootstrap
     P = tp.graph_features(M['bootstrap'])
-
     P.graph_attr['overlap'] = 'scale'
     P.graph_attr['font'] = 'Calibri'
     P.graph_attr['sep'] = 1
@@ -333,9 +298,9 @@ def draw_graph(i, path):
 
 
 # Combine distances with feature summaries ------------------------------------
-opts = {'hd': {'top': top_hd,
+opts = {'hd': {'top': top_ybin,
                'sort': 'gini_pct'},
-        'mdper': {'top': top_mdper,
+        'mdper': {'top': top_ycont,
                   'sort': 'std_pct'}}
 
 # Load CSV specifying which baseline variables are categorical ----------------
@@ -354,18 +319,18 @@ for k, v in opts.items():
         .sort_values(('summary', v['sort']), ascending=False)
     # For each feature in this top 20
     for f in tqdm(v['top']):
-        pd.concat([f['memb'], hdremit, mdpercadj], axis=1)
+        pd.concat([f['memb'], ybin, ycont], axis=1)
         # Get means/proportions for baseline variables
         baseline_diffs = pd.concat([f['memb'], X], axis=1) \
             .groupby(f['feat']) \
             .agg(get_stat).T
-        # Add means of outcomes (hdremit, mdpercadj)
-        oc = pd.concat([f['memb'], hdremit, mdpercadj], axis=1)
-        oc = oc.groupby(oc.iloc[:, 0])[['hdremit', 'mdpercadj']] \
+        # Add means of outcomes (ybin, ycont)
+        oc = pd.concat([f['memb'], ybin, ycont], axis=1)
+        oc = oc.groupby(oc.iloc[:, 0])[['ybin', 'ycont']] \
             .agg(get_stat).T
         baseline_diffs = pd.concat([baseline_diffs, oc])
         # Get two-sample KS test (continuous)/ chi-square test (categorical)
-        XM = pd.concat([X, f['memb'], hdremit, mdpercadj], axis=1)
+        XM = pd.concat([X, f['memb'], ybin, ycont], axis=1)
         XM.rename(columns={f['feat']: 'memb'}, inplace=True)
         for i in XM:
             if i != 'memb':
@@ -381,18 +346,13 @@ for k, v in opts.items():
                     cell = 'KS = {:.5f}; pval={:.5f}'.format(stat, pval)
                     baseline_diffs.loc[i, 'ks_chi'] = cell
         # Get XGB AUC and feature importances
-        # First: with madrs.total
-        auc_w, fi_w = get_fi(X, f['memb'])
-        f['auc_w'] = auc_w
-        # Second: without madrs.total
-        Xf = X.drop(labels='madrs.total', axis=1)
-        auc_wo, fi_wo = get_fi(Xf, f['memb'])
-        f['auc_wo'] = auc_wo
+        auc, fi = get_fi(X, f['memb'])
+        f['auc'] = auc
         # Combine with baseline differences
-        both_fi = pd.concat([fi_w, fi_wo], axis=1)
-        both_fi.columns = ['fi_w', 'fi_wo']
+        fi = pd.concat([fi], axis=1)
+        fi.columns = ['fi']
         with_fi = baseline_diffs \
-            .merge(both_fi,
+            .merge(fi,
                    left_index=True,
                    right_index=True,
                    how='left').reset_index()
@@ -416,11 +376,10 @@ for k, v in opts.items():
             ws.write_column(3, i, f['with_fi'][c])
         ws.write_row(2, 0, list(with_fi))
         # Write AUC
-        ws.write('E2', 'AUC: ' + '{:.10f}'.format(f['auc_w']), bold)
-        ws.write('F2', 'AUC: ' + '{:.10f}'.format(f['auc_wo']), bold)
+        ws.write('E2', 'AUC: ' + '{:.10f}'.format(f['auc']), bold)
         # Add feature summaries
         ss = v['sumstat']
-        for s, r in zip(['summary', 'hdremit', 'mdper'],
+        for s, r in zip(['summary', 'ybin', 'ycont'],
                         [2, 25, 48]):
             ws.write_column(r + 1, 7, ss['graph'])
             ws.write_column(r + 1, 8, ss['feat'])
@@ -432,14 +391,13 @@ for k, v in opts.items():
         ws.set_column('A:F', 25)
         ws.write('A2', 'Baseline differences', bold)
         ws.write('H2', 'Feature summaries', bold)
-        ws.write('H25', 'hdremit.all: Distances to other features, means',
+        ws.write('H25', 'ybin: Distances to other features, means',
                  bold)
-        ws.write('H48', 'mdpercadj: Distance to other features, means', bold)
+        ws.write('H48', 'ycont: Distance to other features, means', bold)
         ws.write_row(2, 0,
                      [' ', 'Non-member',
                       'Member', 'KS/Chi2',
-                      'XGB gain (with madrs)',
-                      'XGB gain (w/o madrs)'],
+                      'XGB gain'],
                      bold)
         # Add Mapper graph
         p = os.path.join('figures', 'for_excel', f['graph'] + '.png')
@@ -447,3 +405,6 @@ for k, v in opts.items():
             draw_graph(f['graph'], p)
         ws.insert_image('H71', p)
     wb.close()
+
+# CONTINUE HERE -- fix error running below code.
+draw_graph(f['graph'], p)

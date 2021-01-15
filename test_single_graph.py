@@ -2,6 +2,7 @@
 # Author:       Ewan Carr
 # Started:      2020-05-06
 
+import os
 import sys
 import pickle
 import pandas as pd
@@ -10,6 +11,7 @@ from sklearn_tda import MapperComplex
 from functions import (representative_features,
                        identify_membership,
                        count_features)
+debug = False
 
 '''
 This script three inputs:
@@ -31,14 +33,19 @@ It then:
 # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 print("Loading inputs...")
-i = sys.argv[1]
-inputs = sys.argv[2] + '/'
-outputs = sys.argv[3] + '/'
+if debug:
+    i = '0333'
+    inputs = 'inputs/'
+    outputs = 'outputs/'
+else:
+    i = sys.argv[1]
+    inputs = sys.argv[2] + '/'
+    outputs = sys.argv[3] + '/'
 
 # Load inputs/datasets
 current = pickle.load(open(inputs + i + '.pickle', 'rb'))
 X = pd.read_csv(inputs + 'X.csv')
-hdremit = pd.read_csv(inputs + 'y.csv', header=None, names=['hdremit.all'])
+ybin = pd.read_csv(inputs + 'ybin.csv', header=None, names=['hdremit.all'])
 gower = pd.read_csv(inputs + 'gower.csv', header=None)
 
 # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -108,5 +115,5 @@ results['n_nodes'] = len(M['map'].node_info_.items())
 results['memb'] = membership
 results['params'] = current
 
-with open(outputs + i + '.pickle', 'wb') as f:
+with open(os.path.join(outputs, i + '.pickle'), 'wb') as f:
     pickle.dump(results, f)

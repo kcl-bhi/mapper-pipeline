@@ -3,21 +3,60 @@
 # Updated:      2020-07-03
 
 import os
+import shutil
 import pickle
 import csv
 import pandas as pd
 import numpy as np
 from sklearn.manifold import MDS
 from sklearn.cluster import DBSCAN, AgglomerativeClustering
+from sklearn.datasets import make_multilabel_classification
 import gower
 import urllib.request
 
+# Check if input dataset is available
+data_avail = os.path.exists('input.csv')
 
-# Load dataset
-gendep = pd.read_csv('baseline.csv').dropna()
+# Load dataset if available; otherwise simulate
+if data_avail:
+    data = pd.read_csv('input.csv').dropna()
+else:
+    sim = make_multilabel_classification(n_samples = 430,
+                                         n_features = 137,
+                                         n_classes = 8)
+    data = pd.DataFrame(sim[0])
+    data.columns = ['X' + str(i + 1) for i in data.columns]
+    data['fila'] = np.random.uniform(-5, 5, len(data.index))
+    data['filb'] = np.random.uniform(-5, 5, len(data.index))
+    data['ycont'] = np.random.uniform(30, 80, len(data.index))
+    data['ybin'] = data['ycont'] > 60
+
+# Identify categorical items
+
+"""
+For computing the Gower matrix (this file) and descriptive statistics
+(later) we need to specify which variables in the input dataset should
+be treated as categorical. This can be specified with a CSV file
+containing the columns 'index' and 'categorical':
+
+index:          A column of variable names matching those in 'input.csv'
+categorical:    A column of 0 or 1 indicating wether each variable should
+                be treated as categorical.
+"""
+
+if data_avail:
+    categ = pd.read_csv('categorical_items.csv')[['index', 'categorical']]
+else:
+    categ = pd.DataFrame({'index': list(data),
+                          'categorical': np.concatenate([np.repeat(1, 137),
+                                                         np.array([0, 0, 0, 1])])})
+    categ.to_csv('categorical_items.csv')
+
+is_categ = categ['categorical'].values == 1
 
 # Compute Gower distance matrix
-gmat = gower.gower_matrix(gendep)
+gmat = gower.gower_matrix(data, cat_features=is_categ)
+
 
 # ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 # ┃                                                                           ┃
@@ -33,12 +72,12 @@ fil['mds'] = MDS(n_components=2,
                  dissimilarity='precomputed').fit_transform(gmat)
 
 # MADRS, BDI, PRS
-fil['madrs'] = gendep['madrs.total'].values
-fil['mdper'] = gendep['mdpercadj'].values
-fil['prs'] = gendep['prs'].values
+fil['fila'] = data['fila'].values
+fil['filb'] = data['filb'].values
+fil['ycont'] = data['ycont'].values
 
 # Create combinations of the above
-for j in ['madrs', 'prs', 'mdper']:
+for j in ['fila', 'filb', 'ycont']:
     fil['mds' + '_' + j] = np.column_stack([fil['mds'], fil[j]])
 
 # Define clustering algorithm =================================================
@@ -71,18 +110,23 @@ params = [{'fil': f,
 
 # Set folder to store input files
 inp = 'inputs'
+out = 'outputs'
 
-# Delete existing input files
-for f in os.listdir(inp):
-    os.unlink(os.path.join(inp, f))
+# Create folder for inputs; delete if exists already
+if os.path.isdir(inp):
+    shutil.rmtree(inp) 
+os.mkdir(inp)
+
+if not os.path.isdir(out):
+    os.mkdir(out)
 
 for i, p in enumerate(params, 1):
     gid = f'{i:04}'
     # Save params as pickle
-    with open(inp + gid + '.pickle', 'wb') as f:
+    with open(os.path.join(inp, gid + '.pickle'), 'wb') as f:
         pickle.dump(p, f)
     # Add to index CSV
-    with open(inp + 'index.csv', 'a') as f:
+    with open(os.path.join(inp, 'index.csv'), 'a') as f:
         writer = csv.writer(f)
         writer.writerow([gid,
                          str(p['fil'][0]),
@@ -100,17 +144,16 @@ for i, p in enumerate(params, 1):
 # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 # Binary 12-week outcome ------------------------------------------------------
-gendep['hdremit.all'].to_csv(inp + 'y.csv', index=False, header=False)
-gendep['mdpercadj'].to_csv(inp + 'mdpercadj.csv', index=False, header=False)
+data['ybin'].to_csv(os.path.join(inp, 'ybin.csv'), index=False, header=False)
+data['ycont'].to_csv(os.path.join(inp, 'ycont.csv'), index=False, header=False)
 
 # Baseline clinical features (excluding any outcomes) -------------------------
-gendep.drop(columns=['centreid',
-                     'hdremit.all',
-                     'mdpercadj']).to_csv(inp + 'X.csv',
-                                          index=False,
-                                          header=True)
+to_drop = ['fila', 'filb', 'ycont', 'ybin']
+data.drop(columns=to_drop, axis=1) \
+    .to_csv(os.path.join(inp, 'X.csv'), index=False, header=True)
+
 # Gower distance matrix
-pd.DataFrame(gmat).to_csv(os.path.join(inp,
-                                       'gower.csv'),
+pd.DataFrame(gmat).to_csv(os.path.join(inp, 'gower.csv'),
                           index=False,
                           header=False)
+

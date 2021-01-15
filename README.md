@@ -41,3 +41,13 @@ ability to incorporate mixed data types.
 statistically significant topological features from a point cloud using
 Mapper. The Mapper graph and selection of optimal clusters are informed
 by a user-specified predictor or outcome of interest.\
+
+# Software
+
+
+```{bash}
+git clone https://github.com/kcl-bhi/mapper-pipeline.git
+python3 -m venv env
+source /env
+pip install -r requirments.txt
+```
