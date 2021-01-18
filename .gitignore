@@ -1,3 +1,6 @@
 inputs/*
+outputs/*
+features.joblib
 env/*
+jobs
 __pycache__/*

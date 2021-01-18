@@ -251,7 +251,8 @@ def chi2(df, col1, col2):
 
 
 def get_fi(X, y):
-    clf = xgb.XGBClassifier()
+    clf = xgb.XGBClassifier(eval_metric='logloss',
+                            use_label_encoder=False)
     clf.fit(scale(X), y)
     auc = np.mean(cross_val_score(clf, X, y, cv=10,
                                   scoring=make_scorer(roc_auc_score)))
@@ -298,9 +299,9 @@ def draw_graph(i, path):
 
 
 # Combine distances with feature summaries ------------------------------------
-opts = {'hd': {'top': top_ybin,
-               'sort': 'gini_pct'},
-        'mdper': {'top': top_ycont,
+opts = {'ybin': {'top': top_ybin,
+                 'sort': 'gini_pct'},
+        'ycont': {'top': top_ycont,
                   'sort': 'std_pct'}}
 
 # Load CSV specifying which baseline variables are categorical ----------------
@@ -357,12 +358,18 @@ for k, v in opts.items():
                    right_index=True,
                    how='left').reset_index()
         f['with_fi'] = with_fi
+        # Get list of feature members (based on row number of input dataset)
+        f['memb_col'] = pd.DataFrame({'row ID': f['memb'].index[f['memb']]})
     # Sort the features
     v['top'] = sorted(v['top'], key=lambda k: k[v['sort']], reverse=True)
 
 # Generate Excel documents ----------------------------------------------------
+if not os.path.exists('examples'):
+    os.mkdir('examples')
 for k, v in opts.items():
-    wb = xlsxwriter.Workbook(k + '.xlsx', {'nan_inf_to_errors': True})
+    wb = xlsxwriter.Workbook(os.path.join('examples', 
+                                          k + '.xlsx'),
+                             {'nan_inf_to_errors': True})
     bigfont = wb.add_format()
     bigfont.set_font_size(18)
     bold = wb.add_format()
@@ -388,7 +395,8 @@ for k, v in opts.items():
             ws.write_row(r, 8, list(ss[(s, )]))
         # Add formatting/labels
         ws.conditional_format('E4:E141', {'type': '3_color_scale'})
-        ws.set_column('A:F', 25)
+        ws.set_column('A:E', 15)
+        ws.set_column('D:E', 25)
         ws.write('A2', 'Baseline differences', bold)
         ws.write('H2', 'Feature summaries', bold)
         ws.write('H25', 'ybin: Distances to other features, means',
@@ -400,11 +408,14 @@ for k, v in opts.items():
                       'XGB gain'],
                      bold)
         # Add Mapper graph
-        p = os.path.join('figures', 'for_excel', f['graph'] + '.png')
+        figdir = os.path.join('figures', 'for_excel')
+        if not os.path.exists(figdir):
+            os.mkdir(figdir)
+        p = os.path.join(figdir, f['graph'] + '.png')
         if not os.path.exists(p):
             draw_graph(f['graph'], p)
         ws.insert_image('H71', p)
+        # Add column with IDs of cluster members
+        ws.write(2, 28, 'Cluster members (based on row numbers of input dataset')
+        ws.write_column(3, 28, f['memb_col'].values)
     wb.close()
-
-# CONTINUE HERE -- fix error running below code.
-draw_graph(f['graph'], p)
