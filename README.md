@@ -17,7 +17,7 @@ Please contact <raquel.iniesta@kcl.ac.uk> for queries.
 ## About
 
 This repository provides a pipeline for clustering based on topological data
-analysis. Please refer to the pre-print at [medRxiv](URL) for details.
+analysis:
 
 > **Motivation.**  This paper exploits recent developments in topological data
 > analysis to present a pipeline for clustering based on the Mapper algorithm.
