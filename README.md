@@ -35,7 +35,10 @@ analysis. Please refer to the pre-print at [medRxiv](URL) for details.
 ## Software
 
 Our pipeline is written in Python 3 and builds on several open source packages,
-including [`sklearn-tda`](https://github.com/MathieuCarriere/sklearn-tda), [`GUDHI`](https://gudhi.inria.fr/python/latest/), [`xgboost`](https://xgboost.readthedocs.io/en/latest/), and [`pygraphviz`](https://pygraphviz.github.io/).
+including [`sklearn-tda`](https://github.com/MathieuCarriere/sklearn-tda),
+[`GUDHI`](https://gudhi.inria.fr/python/latest/),
+[`xgboost`](https://xgboost.readthedocs.io/en/latest/), and
+[`pygraphviz`](https://pygraphviz.github.io/).
 
 To get started, clone this repository and create a new virtual environment:
 
@@ -58,27 +61,26 @@ The scripts should be used as follows:
 
 1. **Generate input files** 
 
-   ````bash
+   ```{bash}
    python3 prepare_inputs.py
-   ````
-
-   i. Load the input dataset.
-   ii. Construct the Gower distance matrix. Note that this requires categorical variables to be specified using `categorical_items.csv`.
-
-   iii. Define sets of parameters to explore via grid search.
-
-   iv. Create a dictionary containing all combinations of input parameters.
-
-   ```{python}
-   params = [{'fil': f,
-              'res': r,
-              'gain': gain}
-             for f in fil.items()
-             for r in resolutions
-             for gain in [0.1, 0.2, 0.3, 0.4]]
    ```
+    1. Load the input dataset.
+    2. Construct the Gower distance matrix. Note that this requires 
+       categorical variables to be specified using `categorical_items.csv`.
+    3. Define sets of parameters to explore via grid search.
+    4. Create a dictionary containing all combinations of input parameters.
 
-   v. Store each set of inputs, and other required data, in the `inputs` directory.
+    ```python
+    params = [{'fil': f,
+               'res': r,
+               'gain': gain}
+              for f in fil.items()
+              for r in resolutions
+              for gain in [0.1, 0.2, 0.3, 0.4]]
+     ```
+
+    5. Store each set of inputs, and other required data, in the `inputs`
+       directory.
 
 2. **Run Mapper for each set of input parameters**
 
@@ -90,11 +92,9 @@ The scripts should be used as follows:
 
    `0333` refers to the set of parameters to test; `inputs` and `outputs` specify the folders to load inputs and save outputs. This script:
 
-   i. Runs Mapper for the specified parameters (using `MapperComplex`).
-
-   ii. Identifies statistically significant, representative, topological features.
-
-   iii. Extracts required summaries and stores in the `outputs` subfolder.
+    1. Runs Mapper for the specified parameters (using `MapperComplex`).
+    2. Identifies statistically significant, representative, topological features.
+    3. Extracts required summaries and stores in the `outputs` subfolder.
 
 3. **Process all outputs and produce summaries**
 
@@ -104,21 +104,21 @@ The scripts should be used as follows:
 
    This file:
 
-   i. Loads all outputs (from `outputs`)
-
-   ii. Excludes graphs with no significant features or duplicate graphs.
-
-   iii. Splits each graph into separate topological features and removes features with <5% or >95% of the sample.
-
-   iv.  Derives required summaries for each feature. This includes homogeneity among feature members with respect to pre-specified outcome.
-
-   v. Rank all features by homogeneity and select the top N features.
-
-   vi. Visualise each top-ranked feature and output summaries to spreadsheet.
+   1. Loads all outputs (from `outputs`)
+   2. Excludes graphs with no significant features or duplicate graphs.
+   3. Splits each graph into separate topological features and removes features 
+      with <5% or >95% of the sample.
+   4. Derives required summaries for each feature. This includes homogeneity
+      among feature members with respect to pre-specified outcome.
+   5. Ranks all features by homogeneity and select the top N features.
+   6. Visualise each top-ranked feature and output summaries to spreadsheet.
 
 ### Parallel computing
 
-The grid search can be time-consuming, especially as the number of parameters settings increase. Fortunately, this process can be [straightforwardly parallelised](https://en.wikipedia.org/wiki/Embarrassingly_parallel) either using multiple cores on a local machine or using cluster computing.
+The grid search can be time-consuming, especially as the number of parameters
+settings increase. Fortunately, this process can be [straightforwardly
+parallelised](https://en.wikipedia.org/wiki/Embarrassingly_parallel) either
+using multiple cores on a local machine or using cluster computing.
 
 On a single machine, using `parallel` :  
 
@@ -140,11 +140,3 @@ On a cluster:
 count=$(printf "%03d" $SLURM_ARRAY_TASK_ID)
 python3 test_single_graph.py $count "inputs" "outputs"s
 ```
-
-
-
-
-
-
- 
-
