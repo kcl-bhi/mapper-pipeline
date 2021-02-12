@@ -14,40 +14,137 @@ Institute of Psychiatry, Psychology \& Neuroscience, King's College London, Unit
 
 Please contact <raquel.iniesta@kcl.ac.uk> for queries.
 
-### Abstract
+## About
 
-> **Motivation:**  
-> There is considerable interest in identifying homogeneous patient subgroups
-with common clinical and biological characteristics or outcomes. Better
-detection of at-risk groups may allow earlier intervention and more targeted
-treatments. In this paper we exploit recent developments in topological data
-analysis to present a pipeline for clustering based on the Mapper algorithm.
-Topological data analysis is a growing field that offers tools to infer,
-analyse, and exploit the shape of data. The Mapper algorithm is one promising
-application that seeks to identify shapes (i.e. clusters) in a multidimensional
-cloud of data points, herein referred to as topological features. Our pipeline
-aims to identify subgroups sharing similar characteristics of interest based on
-their membership to topological features. A central benefit of our approach is
-the ability to incorporate prior knowledge or clinical and biological data to
-inform the clustering process and the selection of optimal clusters. By
-specifying a *filter* (a lens through which to view the data) and selecting
-a target outcome on which to rank and evaluate candidate clusters users can
-identify meaningful clusters of clinical relevance. Other advantages of this
-pipeline include the use of the bootstrap to restrict the search to robust
-topological features; the use of machine learning to inspect clusters; and the
-ability to incorporate mixed data types.   
->
-> **Results:** We present a pipeline to identify and summarise
-statistically significant topological features from a point cloud using
-Mapper. The Mapper graph and selection of optimal clusters are informed
-by a user-specified predictor or outcome of interest.\
+This repository provides a pipeline for clustering based on topological data
+analysis. Please refer to the pre-print at [medRxiv](URL) for details.
 
-# Software
+> **Motivation.**  This paper exploits recent developments in topological data
+> analysis to present a pipeline for clustering based on the Mapper algorithm.
+> Key strengths of this pipeline include the integration of prior knowledge to
+> inform the clustering process and the selection of optimal clusters; the use of
+> the bootstrap to restrict the search to robust topological features; the use of
+> machine learning to inspect clusters; and the ability to incorporate mixed data
+> types.
+> 
+> **Results.** We present a pipeline to identify and summarise clusters based
+> on statistically significant topological features from a point cloud using
+> Mapper.
 
 
-```{bash}
+## Software
+
+Our pipeline is written in Python 3 and builds on several open source packages,
+including [`sklearn-tda`](https://github.com/MathieuCarriere/sklearn-tda), [`GUDHI`](https://gudhi.inria.fr/python/latest/), [`xgboost`](https://xgboost.readthedocs.io/en/latest/), and [`pygraphviz`](https://pygraphviz.github.io/).
+
+To get started, clone this repository and create a new virtual environment:
+
+```
 git clone https://github.com/kcl-bhi/mapper-pipeline.git
+cd mapper-pipeline
 python3 -m venv env
-source /env
+source env/bin/activate
 pip install -r requirments.txt
 ```
+
+## Using the pipeline
+
+The pipeline expects an input dataset in CSV format. In our application, the
+dataset contained information on ≈140 variables for ≈430 participants. If
+`input.csv` is not found in the working directory, sample data will be
+simulated.
+
+The scripts should be used as follows:
+
+1. **Generate input files** 
+
+   ````bash
+   python3 prepare_inputs.py
+   ````
+
+   i. Load the input dataset.
+   ii. Construct the Gower distance matrix. Note that this requires categorical variables to be specified using `categorical_items.csv`.
+
+   iii. Define sets of parameters to explore via grid search.
+
+   iv. Create a dictionary containing all combinations of input parameters.
+
+   ```{python}
+   params = [{'fil': f,
+              'res': r,
+              'gain': gain}
+             for f in fil.items()
+             for r in resolutions
+             for gain in [0.1, 0.2, 0.3, 0.4]]
+   ```
+
+   v. Store each set of inputs, and other required data, in the `inputs` directory.
+
+2. **Run Mapper for each set of input parameters**
+
+   The script `test_single_graph.py` runs Mapper for a single set of parameters. It requires three arguments:
+
+   ```{bash}
+   python3 test_single_graph.py '0333' 'inputs' 'outputs'
+   ```
+
+   `0333` refers to the set of parameters to test; `inputs` and `outputs` specify the folders to load inputs and save outputs. This script:
+
+   i. Runs Mapper for the specified parameters (using `MapperComplex`).
+
+   ii. Identifies statistically significant, representative, topological features.
+
+   iii. Extracts required summaries and stores in the `outputs` subfolder.
+
+3. **Process all outputs and produce summaries**
+
+   ```{bash}
+   python3 process_outputs.py
+   ```
+
+   This file:
+
+   i. Loads all outputs (from `outputs`)
+
+   ii. Excludes graphs with no significant features or duplicate graphs.
+
+   iii. Splits each graph into separate topological features and removes features with <5% or >95% of the sample.
+
+   iv.  Derives required summaries for each feature. This includes homogeneity among feature members with respect to pre-specified outcome.
+
+   v. Rank all features by homogeneity and select the top N features.
+
+   vi. Visualise each top-ranked feature and output summaries to spreadsheet.
+
+### Parallel computing
+
+The grid search can be time-consuming, especially as the number of parameters settings increase. Fortunately, this process can be [straightforwardly parallelised](https://en.wikipedia.org/wiki/Embarrassingly_parallel) either using multiple cores on a local machine or using cluster computing.
+
+On a single machine, using `parallel` :  
+
+```{bash}
+python3 prepare_inputs.py
+parallel --progress -j4 < jobs
+```
+
+On a cluster:
+
+```{bash}
+#!/bin/bash
+#SBATCH --tasks=8
+#SBATCH --mem=4000
+#SBATCH --job-name=array
+#SBATCH --array=1-2000
+#SBATCH --output=logs/%a.out
+#SBATCH --time=0-72:00
+count=$(printf "%03d" $SLURM_ARRAY_TASK_ID)
+python3 test_single_graph.py $count "inputs" "outputs"s
+```
+
+
+
+
+
+
+ 
+
