@@ -1,6 +1,6 @@
 # Title:        Prepare pipeline inputs for different parameter combinations
-# Author:       Ewan Carr
-# Updated:      2020-07-03
+# Author:       Ewan Carr (@ewancarr)
+# Updated:      2021-02-10
 
 import os
 import shutil

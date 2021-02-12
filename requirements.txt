@@ -3,7 +3,7 @@ pandas==1.2.0
 scikit-learn==0.24.0
 git+https://github.com/MathieuCarriere/statmapper.git
 git+https://github.com/MathieuCarriere/sklearn-tda.git
-git+https://github.com/ewancarr/tda_helpers.git
+git+https://github.com/ewancarr/tda_functions.git
 ipython==7.19.0
 gower==0.0.5
 matplotlib==3.3.3
