@@ -9,7 +9,7 @@ Raquel Iniesta<sup>1</sup>
 <sup>1</sup> Department of Biostatistics and Health Informatics,
 Institute of Psychiatry, Psychology \& Neuroscience, King's College London, United Kingdom.  
 <sup>2</sup>Inria Sophia-Antipolis, DataShape team, Biot, France.  
-<sup>3</sup>Ecole Centrale de Nantes, LMJL -- UMR CNRS 6629, Nantes, France.  
+<sup>3</sup>Ecole Centrale de Nantes, LMJL — UMR CNRS 6629, Nantes, France.  
 <sup>4</sup>Inria Saclay, Ile-de-France, France.  
 
 For more information, please see the 🔓 paper in *BMC Bioinformatics*:
