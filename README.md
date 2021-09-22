@@ -1,4 +1,4 @@
-# A pipeline to identify homogeneous subgroups of patients and important features using topological data analysis integrated with machine learning
+# Identifying homogeneous subgroups of patients and important features: a topological machine learning approach
 
 Ewan Carr<sup>1</sup>  
 Mathieu Carrière<sup>2</sup>  
@@ -12,24 +12,31 @@ Institute of Psychiatry, Psychology \& Neuroscience, King's College London, Unit
 <sup>3</sup>Ecole Centrale de Nantes, LMJL -- UMR CNRS 6629, Nantes, France.  
 <sup>4</sup>Inria Saclay, Ile-de-France, France.  
 
-Please contact <raquel.iniesta@kcl.ac.uk> for queries.
+For more information, please see the open access paper in *BMC Bioinformatics*
+(<https://doi.org/10.1186/s12859-021-04360-9>). Please contact
+<mailto:raquel.iniesta@kcl.ac.uk> for queries.
 
 ## About
 
 This repository provides a pipeline for clustering based on topological data
 analysis:
 
-> **Motivation.**  This paper exploits recent developments in topological data
-> analysis to present a pipeline for clustering based on the Mapper algorithm.
+> **Background**
+> This paper exploits recent developments in topological data analysis to present
+> a pipeline for clustering based on Mapper, an algorithm that reduces complex
+> data into a one-dimensional graph.
+> 
+> **Results**
+> We present a pipeline to identify and summarise clusters based on statistically
+> significant topological features from a point cloud using Mapper.
+> 
+> **Conclusions**
 > Key strengths of this pipeline include the integration of prior knowledge to
 > inform the clustering process and the selection of optimal clusters; the use of
 > the bootstrap to restrict the search to robust topological features; the use of
 > machine learning to inspect clusters; and the ability to incorporate mixed data
-> types.
-> 
-> **Results.** We present a pipeline to identify and summarise clusters based
-> on statistically significant topological features from a point cloud using
-> Mapper.
+> types. Our pipeline can be downloaded under the GNU GPLv3 license at
+> <https://github.com/kcl-bhi/mapper-pipeline>.
 
 
 ## Software
@@ -84,13 +91,15 @@ The scripts should be used as follows:
 
 2. **Run Mapper for each set of input parameters**
 
-   The script `test_single_graph.py` runs Mapper for a single set of parameters. It requires three arguments:
+   The script `test_single_graph.py` runs Mapper for a single set of
+   parameters. It requires three arguments:
 
    ```{bash}
    python3 test_single_graph.py '0333' 'inputs' 'outputs'
    ```
 
-   `0333` refers to the set of parameters to test; `inputs` and `outputs` specify the folders to load inputs and save outputs. This script:
+   `0333` refers to the set of parameters to test; `inputs` and `outputs`
+   specify the folders to load inputs and save outputs. This script:
 
     1. Runs Mapper for the specified parameters (using `MapperComplex`).
     2. Identifies statistically significant, representative, topological features.
@@ -138,5 +147,5 @@ On a cluster:
 #SBATCH --output=logs/%a.out
 #SBATCH --time=0-72:00
 count=$(printf "%03d" $SLURM_ARRAY_TASK_ID)
-python3 test_single_graph.py $count "inputs" "outputs"s
+python3 test_single_graph.py $count "inputs" "outputs"
 ```

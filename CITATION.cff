@@ -1,0 +1,46 @@
+# YAML 1.2
+---
+abstract: |
+    "Background
+    
+    This paper exploits recent developments in topological data analysis to present a pipeline for clustering based on Mapper, an algorithm that reduces complex data into a one-dimensional graph.
+    
+    Results
+    
+    We present a pipeline to identify and summarise clusters based on statistically significant topological features from a point cloud using Mapper.
+    
+    Conclusions
+    
+    Key strengths of this pipeline include the integration of prior knowledge to inform the clustering process and the selection of optimal clusters; the use of the bootstrap to restrict the search to robust topological features; the use of machine learning to inspect clusters; and the ability to incorporate mixed data types. Our pipeline can be downloaded under the GNU GPLv3 license at https://github.com/kcl-bhi/mapper-pipeline."
+authors: 
+  -
+    affiliation: "Department of Biostatistics and Health Informatics, Institute of Psychiatry, Psychology and Neuroscience, King’s College London, London, UK"
+    family-names: Carr
+    given-names: Ewan
+  -
+    affiliation: "Inria Sophia-Antipolis, DataShape Team, Biot, France"
+    family-names: "Carrière"
+    given-names: Mathieu
+  -
+    affiliation: "Ecole Centrale de Nantes, LMJL – UMR CNRS 6629, Nantes, France"
+    family-names: Michel
+    given-names: Bertrand
+  -
+    affiliation: "Inria Saclay, Ile-de-France, Alan Turing Building, Palaiseau, France"
+    family-names: Chazal
+    given-names: "Frédéric"
+  -
+    affiliation: "Department of Biostatistics and Health Informatics, Institute of Psychiatry, Psychology and Neuroscience, King’s College London, London, UK"
+    family-names: Iniesta
+    given-names: Raquel
+cff-version: "1.1.0"
+date-released: 2021-09-20
+doi: "10.1186/s12859-021-04360-9"
+keywords: 
+  - "Topological data analysis"
+  - Clustering
+  - "Machine learning"
+message: "If you use this software, please cite it using these metadata."
+repository-code: "https://github.com/kcl-bhi/mapper-pipeline"
+title: "Identifying homogeneous subgroups of patients and important features: a topological machine learning approach"
+...
