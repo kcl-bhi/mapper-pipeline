@@ -18,7 +18,7 @@ For more information, please see the 🔓 paper in *BMC Bioinformatics*:
 > of patients and important features: a topological machine learning approach.
 > *BMC Bioinformatics* **22**, 449 (2021). <https://doi.org/10.1186/s12859-021-04360-9>
 
-Please contact <mailto:raquel.iniesta@kcl.ac.uk> for queries.
+Please contact [raquel.iniesta@kcl.ac.uk](mailto:raquel.iniesta@kcl.ac.uk) for queries.
 
 ## About
 
