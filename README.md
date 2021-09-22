@@ -12,9 +12,13 @@ Institute of Psychiatry, Psychology \& Neuroscience, King's College London, Unit
 <sup>3</sup>Ecole Centrale de Nantes, LMJL -- UMR CNRS 6629, Nantes, France.  
 <sup>4</sup>Inria Saclay, Ile-de-France, France.  
 
-For more information, please see the open access paper in *BMC Bioinformatics*
-(<https://doi.org/10.1186/s12859-021-04360-9>). Please contact
-<mailto:raquel.iniesta@kcl.ac.uk> for queries.
+For more information, please see the 🔓 paper in *BMC Bioinformatics*:
+
+> Carr, E., Carrière, M., Michel, B. et al. Identifying homogeneous subgroups
+> of patients and important features: a topological machine learning approach.
+> *BMC Bioinformatics* **22**, 449 (2021). <https://doi.org/10.1186/s12859-021-04360-9>
+
+Please contact <mailto:raquel.iniesta@kcl.ac.uk> for queries.
 
 ## About
 
